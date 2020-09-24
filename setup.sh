@@ -140,4 +140,8 @@ fi
 
 touch data/nginx/ccs-back/storage/app/complete.json
 touch data/nginx/ccs-back/storage/app/proposals.json
+
+echo "[*] BUILDING DOCKER IMAGE"
+docker build -t crowdfunding-backend -f crowdfunding.Dockerfile ./data/context
+
 echo "[*] DONE!"
