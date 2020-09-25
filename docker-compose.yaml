@@ -45,6 +45,7 @@ services:
       - ${PWD}/data/nginx/ccs-back/storage/app/complete.json:/var/www/html/ccs-front/_data/completed-proposals.json
       - ${PWD}/ccs.env:/var/www/html/ccs-back/.env
       - ${PWD}/ccs.nginx:/etc/nginx/sites-enabled/ccs
+      - ${PWD}/cron.py:/var/www/html/ccs-back/cron.py
     ports:
       - "81:80"
     networks:
