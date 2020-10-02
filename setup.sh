@@ -163,7 +163,9 @@ while True:
     call(["php","/var/www/html/ccs-back/artisan","schedule:run"])
     call(["jekyll","build","--source","/var/www/html/ccs-front","--destination","/var/www/html/ccs-front/_site"])
     print("updated website to latest state")
-    call(["/usr/bin/mysqldump", "-u", "root", "password=${MYSQL_ROOT_PASSWORD}", "crowdfund", ">", "/var/www/html/ccs-db/backup.sql"])
+    call(["MYSQL_PWD=${MYSQL_ROOT_PASSWORD}", "/usr/bin/mysqldump", "-P", "3306", "-h", "mysql", "-u", "root", "crowdfund", ">", "/var/www/html/ccs-db/backup.sql"])
+    call(["head","-n","-1","/var/www/html/ccs-db/backup.sql",">","/var/www/html/ccs-db/t.sql"])
+    call(["mv","/var/www/html/ccs-db/t.sql","/var/www/html/ccs-db/backup.sql"])
     call(["git","add","."])
     call(["git","commit","-a","-m","\"db backup\""])
     call(["git", "push"])
@@ -172,7 +174,7 @@ EOL
 
 echo "MANUAL: place wallet file in ./data/particld and hit enter"
 read WALLET_ENTERED
-FILE=./data/particld/testnet/wallet.dat
+FILE=./data/particld/wallet.dat
 if [ -f "$FILE" ]; then
     echo "$FILE exists."
 else 
