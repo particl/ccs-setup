@@ -145,8 +145,6 @@ openssl req -x509 -nodes -days 36500 -newkey rsa:2048 -keyout ccs-https.key -out
 
 echo "[*] GENERATING PARTICLD CONF FILE"
 cat >./data/particld/particl.conf <<EOL
-testnet=1
-[test]
 rpcuser=crowdfunduser
 rpcpassword=${PARTICLD_USER_PASSWORD}
 rpcbind=0.0.0.0
