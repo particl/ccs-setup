@@ -155,7 +155,9 @@ EOL
 
 echo "[*] GENERATING CRON FILE"
 cat >./cron.py <<EOL
-from subprocess import call
+from subprocess import call, os
+mysql_env = os.environ.copy()
+mysql_env["MYSQL_PWD"] = "${MYSQL_ROOT_PASSWORD}"
 import time
 while True:
     call(["git","-C","/var/www/html/ccs-front","pull"])
@@ -163,12 +165,12 @@ while True:
     call(["php","/var/www/html/ccs-back/artisan","schedule:run"])
     call(["jekyll","build","--source","/var/www/html/ccs-front","--destination","/var/www/html/ccs-front/_site"])
     print("updated website to latest state")
-    call(["MYSQL_PWD=${MYSQL_ROOT_PASSWORD}", "/usr/bin/mysqldump", "-P", "3306", "-h", "mysql", "-u", "root", "crowdfund", ">", "/var/www/html/ccs-db/backup.sql"])
-    call(["head","-n","-1","/var/www/html/ccs-db/backup.sql",">","/var/www/html/ccs-db/t.sql"])
-    call(["mv","/var/www/html/ccs-db/t.sql","/var/www/html/ccs-db/backup.sql"])
-    call(["git","add","."])
-    call(["git","commit","-a","-m","\"db backup\""])
-    call(["git", "push"])
+    call("/usr/bin/mysqldump -P 3306 -h mysql -u root crowdfund > /var/www/html/ccs-db/backup.sql", shell=True, env=mysql_env)
+    call("head -n -1 backup.sql > t.sql", shell=True, cwd="/var/www/html/ccs-db")
+    call(["mv","t.sql","backup.sql"], cwd="/var/www/html/ccs-db")
+    call(["git","add","."], cwd="/var/www/html/ccs-db")
+    call(["git","commit","-a","-m","\"db backup\""], cwd="/var/www/html/ccs-db")
+    call(["git", "push"], cwd="/var/www/html/ccs-db")
     time.sleep(30)
 EOL
 
