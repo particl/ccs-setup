@@ -45,9 +45,27 @@ else
    git clone "$PROP_REPO_URL" "$D"
 fi
 
-echo "[*] INSERT GITHUB ACCESS TOKEN (retrieve public_repo token from GitHub)"
+echo "[*] INSERT GITHUB USERNAME (e.g kewde)"
+read GITHUB_USERNAME
+GITHUB_USERNAME=${GITHUB_USERNAME:-kewde}
+
+echo "[*] INSERT GITHUB ACCESS TOKEN (retrieve 'repo' token from GitHub: https://github.com/settings/tokens/new)"
 read GITHUB_ACCESS_TOKEN
 GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN:-SECRET}
+
+echo "[*] INSERT DB BACKUP REPO URL WIHTOUT HTTPS:// (e.g github.com/particl/ccs-db)"
+read BACKUP_REPO_URL
+BACKUP_REPO_URL=${BACKUP_REPO_URL:-github.com/kewde/ccs-db}
+# Check if the directory exist, else clone it.
+D=./data/nginx/ccs-db
+if [ -f "$D" ]; then
+    echo "$D already exists, aborting."
+    exit
+else 
+   echo "[*] CLONING BACKUP REPO"
+   git clone "https://${GITHUB_USERNAME}:${GITHUB_ACCESS_TOKEN}@$BACKUP_REPO_URL" "$D"
+fi
+
 
 echo "[*] GENERATE SECRETS"
 echo "      [*] GENERATING MYSQL ROOT PASSWORD"
@@ -97,9 +115,15 @@ cat >./ccs.nginx <<EOL
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
     root /var/www/html/ccs-front/_site/;
     index index.php index.html;
     server_name ${HOSTNAME};
+
+    ssl_certificate /etc/ssl/certs/ccs-https.crt;
+    ssl_certificate_key /etc/ssl/private/ccs-https.key;
+    ssl_protocols TLSv1.2 TLSv1.1 TLSv1;
 
     location / {
         try_files \$uri \$uri/ /index.php?$query_string;
@@ -116,6 +140,9 @@ server {
 }
 EOL
 
+echo "[*] GENERATING SELF SIGNED TLS CERTIFICATES WHICH LAST 100 YEAR"
+openssl req -x509 -nodes -days 36500 -newkey rsa:2048 -keyout ccs-https.key -out ccs-https.crt -subj "/C=GB/ST=London/L=London/O=Global Security/OU=IT Department/CN=${HOSTNAME}"
+
 echo "[*] GENERATING PARTICLD CONF FILE"
 cat >./data/particld/particl.conf <<EOL
 testnet=1
@@ -126,6 +153,23 @@ rpcbind=0.0.0.0
 rpcallowip=::/0
 rpcport=51935
 printtoconsole=1
+EOL
+
+echo "[*] GENERATING CRON FILE"
+cat >./cron.py <<EOL
+from subprocess import call
+import time
+while True:
+    call(["git","-C","/var/www/html/ccs-front","pull"])
+    call(["git","-C","/var/www/html/ccs-back/storage/app/proposals/","pull"])
+    call(["php","/var/www/html/ccs-back/artisan","schedule:run"])
+    call(["jekyll","build","--source","/var/www/html/ccs-front","--destination","/var/www/html/ccs-front/_site"])
+    print("updated website to latest state")
+    call(["/usr/bin/mysqldump", "-u", "root", "password=${MYSQL_ROOT_PASSWORD}", "crowdfund", ">", "/var/www/html/ccs-db/backup.sql"])
+    call(["git","add","."])
+    call(["git","commit","-a","-m","\"db backup\""])
+    call(["git", "push"])
+    time.sleep(30)
 EOL
 
 echo "MANUAL: place wallet file in ./data/particld and hit enter"

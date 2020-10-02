@@ -46,7 +46,10 @@ services:
       - ${PWD}/ccs.env:/var/www/html/ccs-back/.env
       - ${PWD}/ccs.nginx:/etc/nginx/sites-enabled/ccs
       - ${PWD}/cron.py:/var/www/html/ccs-back/cron.py
+      - ${PWD}/ccs-https.key:/etc/ssl/private/ccs-https.key
+      - ${PWD}/ccs-https.crt:/etc/ssl/certs/ccs-https.crt
     ports:
-      - "81:80"
+      - "80:80"
+      - "443:443"
     networks:
       - crowdfunding-network
