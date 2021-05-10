@@ -18,5 +18,7 @@ RUN php -r "unlink('composer-setup.php');"
 
 RUN rm /etc/nginx/sites-enabled/default
 
+RUN docker-php-ext-install mysqli pdo pdo_mysql
 # CMD while true; do sleep 12 ; echo "foreground"; done
 CMD cd /var/www/html/ccs-back/ && ls -l && /bin/composer.phar update && php artisan migrate --force && php artisan up && php artisan key:generate && php artisan proposal:process && php artisan proposal:update && chown -R www-data /var/www/html/ccs-back/ && chown -R www-data /var/www/html/ccs-front/ && service nginx reload && service nginx start && python cron.py
+
